@@ -1,0 +1,10 @@
+name: adapter-check-env
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python>=3.12
+  - bbmap==39.06
+  - cutadapt==4.9
+  - seqkit==2.8.2
