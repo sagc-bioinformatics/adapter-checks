@@ -21,6 +21,23 @@ process BBMERGE {
     """
 }
 
+// Discover what percentage of detected adapters start with the specified sequence
+process SEQ_COMPARE {
+    input:
+    val sequence
+    path(fasta)
+
+    output:
+    tuple path("n_seqs.txt"), path("n_matching.txt"), emit: stats
+
+    script:
+    """
+    awk 'NR%2==0' $fasta > sequences.txt
+    cat sequences.txt | wc -l > n_seqs.txt
+    grep '^$sequence' sequences.txt | wc -l > n_matching.txt
+    """
+}
+
 //
 // Generates a fasta file of completely random sequences to be used as test adapters
 //
@@ -38,7 +55,7 @@ process RANDOM_SEQUENCE {
     """
     #!/usr/bin/env python
     import random
-    random.seed(seed)
+    random.seed($seed)
 
     bases = ['A', 'T', 'C', 'G']
 
@@ -49,7 +66,7 @@ process RANDOM_SEQUENCE {
         return ''.join([ randombase() for _ in range(length) ])
 
     with open('random.fa', 'w') as f:
-        f.write(''.join([ f'>random_{i+1}\n{randomseq($seq_length)}\n' for i in range($n_seqs) ]))
+        f.write(''.join([ f'>random_{i+1}\\n{randomseq($seq_length)}\\n' for i in range($n_seqs) ]))
     """
 }
 
