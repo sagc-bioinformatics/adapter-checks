@@ -23,6 +23,8 @@ process BBMERGE {
 
 // Discover what percentage of detected adapters start with the specified sequence
 process SEQ_COMPARE {
+    cpus 1
+
     input:
     val sequence
     path(fasta)
@@ -42,6 +44,7 @@ process SEQ_COMPARE {
 // Generates a fasta file of completely random sequences to be used as test adapters
 //
 process RANDOM_SEQUENCE {
+    cpus 1
 
     input:
     val n_seqs  
@@ -74,6 +77,8 @@ process RANDOM_SEQUENCE {
 // Prefixes the name of the sequence with the sample name so that we can merge them easily.
 //
 process RENAME_ADAPTERS {
+    cpus 1
+
     input:
     tuple val(meta), path(adapters)
 
@@ -92,7 +97,7 @@ process RENAME_ADAPTERS {
 //
 process BBDUK {
 
-    cpus 16
+    cpus 8
     publishDir "${params.output}/bbduk/${adapters.name - ~/\.\w+$/}-${args.replace(' ', '_').replace('=', '')}", mode: 'symlink'
 
     input:
@@ -101,7 +106,6 @@ process BBDUK {
     each path(adapters)
 
     output:
-    tuple val(meta), path("*.fastq.gz"), emit: passed
     tuple val(meta), path("*_matched.fastq.gz"), emit: matched
     tuple val(meta), path("${meta}_log.txt"),    emit: log
     tuple val(meta), path("${meta}_stats.${outname}.txt"),  emit: stats
@@ -112,8 +116,6 @@ process BBDUK {
     bbduk.sh \
         in=${reads[0]} \\
         in2=${reads[1]} \\
-        out=${meta}_R1.fastq.gz \\
-        out2=${meta}_R2.fastq.gz \\
         outm=${meta}_R1_matched.fastq.gz \\
         outm2=${meta}_R2_matched.fastq.gz \\
         threads=${task.cpus/2} \\
@@ -124,6 +126,8 @@ process BBDUK {
 
 
 process SUBSAMPLE {
+    cpus 1
+
     input:
     tuple val(meta), path(fastq)
     val n // number of reads to extract
