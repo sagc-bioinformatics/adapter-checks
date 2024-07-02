@@ -1,6 +1,7 @@
 #!/usr/bin/env nextflow
 
 params.subsample_n = 100000
+params.adapters = "${projectDir}/resources/bbmap_adapters.fa"
 
 // Information on these processes can be found in the module file
 include { SUBSAMPLE       } from './modules/adapter-checks-modules.nf'
@@ -10,6 +11,7 @@ include { BBMERGE         } from './modules/adapter-checks-modules.nf'
 include { BBDUK           } from './modules/adapter-checks-modules.nf'
 include { CUTADAPT        } from './modules/adapter-checks-modules.nf'
 include { SEQ_COMPARE     } from './modules/adapter-checks-modules.nf'
+include { REPORTING       } from './modules/adapter-checks-modules.nf'
 
 workflow {
     
@@ -17,12 +19,11 @@ workflow {
     ch_raw = channel.fromFilePairs(params.input_fastq + "/*_R{1,2}*fastq.gz", size: 2)
 
     // Perform adapter trimming using cutadapt, with given adapter sequence
-    /*
     CUTADAPT (
         ch_raw,
         params.cutadapt_adapter,
         params.cutadapt_args,
-    )*/
+    )
 
     // Subsample the reads before we use bbmerge (purely for efficiency)
     ch_raw_subsample = SUBSAMPLE(ch_raw.transpose(), params.subsample_n).groupTuple(size: 2)
@@ -64,15 +65,21 @@ workflow {
     // Create an equivalently long fasta file with purely random sequences
     RANDOM_SEQUENCE (
         ch_n_seq, // number of sequences to be generated
-        50, // length in bp
+        30, // length in bp
         100 // seed for random generation
     )
 
-    /*
     // Use bbduk to filter for adapters with the two different sets
     BBDUK (
-        ch_trim,
+        CUTADAPT.out.trimmed,
+        channel.fromList([params.bbduk_standard_args, params.bbduk_lenient_args]),
         ch_combined_adapters.mix(RANDOM_SEQUENCE.out.adapters)
     )
-    */
+
+    ch_notebook = channel.fromPath("${projectDir}/resources/adapter-check-report.ipynb", checkIfExists: true)
+    // Generate a report using a jupyter notebook
+    REPORTING (
+        BBDUK.out.stats.map { it[1] }.collect(),
+        ch_notebook
+    )
 }

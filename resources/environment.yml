@@ -8,3 +8,7 @@ dependencies:
   - bbmap==39.06
   - cutadapt==4.9
   - seqkit==2.8.2
+  - nbconvert==7.16.4
+  - ipykernel==6.28.0
+  - pandas==2.2.2
+  - matplotlib==3.9.0

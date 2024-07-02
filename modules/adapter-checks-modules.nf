@@ -88,22 +88,26 @@ process RENAME_ADAPTERS {
 
 // 
 // Read filtering using bbduk
+// args and adapters are specified with each, so that every combination will be run
+//
 process BBDUK {
 
     cpus 16
-    publishDir "${params.output}/bbduk", mode: 'symlink'
+    publishDir "${params.output}/bbduk/${adapters.name - ~/\.\w+$/}-${args.replace(' ', '_').replace('=', '')}", mode: 'symlink'
 
     input:
     tuple val(meta), path(reads)
-    path(adapters)
+    each args
+    each path(adapters)
 
     output:
     tuple val(meta), path("*.fastq.gz"), emit: passed
     tuple val(meta), path("*_matched.fastq.gz"), emit: matched
     tuple val(meta), path("${meta}_log.txt"),    emit: log
-    tuple val(meta), path("${meta}_stats.txt"),  emit: stats
+    tuple val(meta), path("${meta}_stats.${outname}.txt"),  emit: stats
 
     script:
+    outname = "${adapters.name - ~/\.\w+$/}-${args.replace(' ', '_').replace('=', '')}"
     """
     bbduk.sh \
         in=${reads[0]} \\
@@ -113,8 +117,8 @@ process BBDUK {
         outm=${meta}_R1_matched.fastq.gz \\
         outm2=${meta}_R2_matched.fastq.gz \\
         threads=${task.cpus/2} \\
-        TODO: ${bbduk_parameters} \\
-        ktrim=r mink=11 hdist=2 k=21 tbo ref=$adapters stats=${meta}_stats.txt > ${meta}_log.txt
+        ${args} \\
+        ref=$adapters stats=${meta}_stats.${outname}.txt > ${meta}_log.txt
     """
 }
 
@@ -161,5 +165,22 @@ process CUTADAPT {
         -p ${meta}_R2_trimmed.fastq.gz \
         -j ${task.cpus} \
         ${reads[0]} ${reads[1]} > ${meta}_log.txt
+    """
+}
+
+process REPORTING {
+    publishDir "${params.output}/report/", mode: 'symlink'
+    
+    input:
+    path(stats_files)
+    path(notebook)
+    
+    output:
+    path("adapter-check-report.html")
+    path("*_adapter_percent.csv")
+
+    script:
+    """
+    jupyter nbconvert --execute --no-input --no-prompt --to html $notebook
     """
 }
