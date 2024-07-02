@@ -11,7 +11,7 @@ Dependencies are the latest stable version of `nextflow` and `conda` (alternativ
 4. Consensus sequences are merged with a premade adapter list (can be altered via `--adapters`). The default uses the list provided by `bbmap`.
 5. `bbduk` is used with the merged adapter list to filter for adapters. Two different sets of arguments are used, `-bbduk_standard_args` and `-bbduk_lenient_args`.
 6. Random adapter sequences are generated and the same parameters are used with the random adapters as a comparison.
-7. Report is generated (TODO). Most frequent matches are compared across each parameter combination.
+7. Report is generated. Most frequent matches are compared across each parameter combination.
 
 ## Running
 
